@@ -2,56 +2,89 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Set the viewport so the page scales well on mobile devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Classic Obstacle Dodger</title>
   <style>
-    /* General Styles */
-    body, html {
+    /* Reset and general styles */
+    * {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
+    }
+    body, html {
       height: 100%;
-      background-color: #ff9800;
       font-family: Arial, sans-serif;
+      background-color: #ff9800;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow: hidden;
+    }
+    /* Header */
+    header {
+      text-align: center;
+      margin: 10px;
+      width: 100%;
+      max-width: 1400px;
+    }
+    header h1 {
+      font-size: 36px;
+      color: white;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    /* Info Panel */
+    #info-panel {
       display: flex;
       justify-content: center;
-      align-items: center;
-      overflow: hidden;
-      flex-direction: column;
+      gap: 20px;
+      margin-bottom: 10px;
     }
+    #info-panel span {
+      font-size: 24px;
+      color: white;
+      text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+    }
+    /* Game Container */
     #game-container {
       position: relative;
       width: 100%;
       max-width: 1400px;
-      height: 80%;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      height: 300px; /* Horizontally long (wide and short) */
       background: #222;
       border: 4px solid #fff;
+      overflow: hidden;
+      margin-bottom: 10px;
     }
+    /* Game Area */
     #game-area {
       width: 100%;
-      height: 90%;
+      height: 100%;
       position: relative;
       background: linear-gradient(45deg, #009688, #4caf50);
       display: flex;
       align-items: flex-end;
       padding-bottom: 10px;
-      box-sizing: border-box;
     }
+    /* Player Styles */
     #player {
       font-size: 50px;
       position: absolute;
       bottom: 0;
       left: 10%;
+      z-index: 2;
     }
+    /* Dynamic objects: obstacles and apples */
     #obstacles, #apples {
       position: absolute;
       bottom: 0;
       left: 0;
       width: 100%;
       height: 100%;
+      pointer-events: none;
+      z-index: 1;
     }
     .obstacle, .apple {
       position: absolute;
@@ -64,62 +97,43 @@
     .apple {
       color: red;
     }
-    #score-text, #level-text, #rounds-text {
-      font-size: 24px;
-      color: white;
-      text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
-      margin: 10px;
-      display: inline-block;
-    }
-    h1 {
-      font-size: 36px;
-      color: white;
-      font-weight: bold;
-      margin: 15px;
-    }
+    /* Game Over Text */
     #game-over {
-      font-size: 24px;
-      color: red;
-      font-weight: bold;
-      display: none;
       position: absolute;
       top: 40%;
       width: 100%;
       text-align: center;
+      font-size: 24px;
+      color: red;
+      font-weight: bold;
+      display: none;
+      z-index: 3;
     }
-    button {
+    /* Controls */
+    #controls {
+      margin-bottom: 10px;
+    }
+    #controls button {
       font-size: 24px;
       padding: 10px 15px;
       background-color: #009688;
       border: none;
       color: white;
       cursor: pointer;
-      margin: 10px;
+      margin: 0 5px;
     }
-    button:hover {
+    #controls button:hover {
       background-color: #004d40;
     }
-    #pause-button {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-    }
-    #made-by-static {
-      font-size: 14px;
-      color: white;
-      position: absolute;
-      bottom: 10px;
-      right: 10px;
-    }
-    #made-by-static a {
-      color: white;
-      text-decoration: none;
-      font-weight: bold;
+    /* QR Code and Footer (outside game container) */
+    footer {
+      width: 100%;
+      max-width: 1400px;
+      display: flex;
+      justify-content: flex-end;
+      padding: 10px;
     }
     #qr-code {
-      position: absolute;
-      bottom: 10px;
-      right: 10px;
       width: 120px;
     }
     /* Mobile Styles */
@@ -127,40 +141,48 @@
       #player {
         font-size: 40px;
       }
-      #score-text, #level-text, #rounds-text {
+      #info-panel span {
+        font-size: 18px;
+      }
+      #controls button {
         font-size: 18px;
       }
     }
   </style>
 </head>
 <body>
-  <div id="game-container">
+  <header>
     <h1>Classic Obstacle Dodger</h1>
-    <div>
+    <div id="info-panel">
       <span id="score-text">Score: 0</span>
       <span id="level-text">Level: 1</span>
       <span id="rounds-text">Rounds: 0</span>
     </div>
+  </header>
+  <div id="game-container">
     <div id="game-area">
       <div id="player">🏃‍➡️</div>
       <div id="obstacles"></div>
       <div id="apples"></div>
       <p id="game-over">Game Over! Press Enter or Space to Restart</p>
     </div>
-    <div>
-      <button id="start-button">Start Game</button>
-      <button id="pause-button" style="display: none;">Pause</button>
-      <button id="restart-button" style="display: none;">Restart Game</button>
-      <button id="faq-button" style="display: none;">FAQ</button>
-    </div>
-    <p id="made-by-static">
-      <a href="https://sites.google.com/view/staticquasar931" target="_blank">Made By Static</a>
-    </p>
-    <img id="qr-code" src="https://res.cloudinary.com/dcsrqennd/image/upload/v1733694622/frame_1_vmv9y3.png" alt="QR Code" />
   </div>
+  <div id="controls">
+    <button id="start-button">Start Game</button>
+    <button id="pause-button" style="display: none;">Pause</button>
+    <button id="restart-button" style="display: none;">Restart Game</button>
+    <button id="faq-button" style="display: none;">FAQ</button>
+  </div>
+  <footer>
+    <a href="https://sites.google.com/view/staticquasar931" target="_blank" id="made-by-static">
+      Made By Static
+    </a>
+    <!-- The QR code is placed in the footer, outside the gameplay area -->
+    <img id="qr-code" src="https://res.cloudinary.com/dcsrqennd/image/upload/v1733694622/frame_1_vmv9y3.png" alt="QR Code" />
+  </footer>
 
   <script>
-    // DOM Elements
+    // ------------------- DOM Elements -------------------
     const gameArea = document.getElementById('game-area');
     const obstaclesContainer = document.getElementById('obstacles');
     const applesContainer = document.getElementById('apples');
@@ -174,7 +196,7 @@
     const restartButton = document.getElementById('restart-button');
     const faqButton = document.getElementById('faq-button');
 
-    // Game Variables
+    // ------------------- Game Variables -------------------
     let score = 0;
     let level = 1;
     let rounds = 0;
@@ -182,25 +204,25 @@
     let isPaused = false;
     let isJumping = false;
 
-    // Timing & Spawn Variables (milliseconds)
+    // Timing & spawn variables (in milliseconds)
     let lastTime = null;
     let obstacleSpawnTimer = 0;
     let appleSpawnTimer = 0;
     const obstacleSpawnInterval = 2000;
     const appleSpawnInterval = 3000;
 
-    // Game speed and jump settings
-    let speed = 300; // pixels per second
-    const jumpHeight = 150; // maximum jump height in pixels
+    // Speed settings (in pixels per second)
+    let speed = 300;
+    const jumpHeight = 150; // Maximum jump height in pixels
 
     // Arrays to store obstacles and apples
     let obstacles = [];
     let apples = [];
 
-    // The game loop ID for requestAnimationFrame
+    // Game loop ID for requestAnimationFrame
     let gameLoopId = null;
 
-    // Event Listeners
+    // ------------------- Event Listeners -------------------
     startButton.addEventListener('click', startGame);
     pauseButton.addEventListener('click', togglePause);
     restartButton.addEventListener('click', restartGame);
@@ -210,13 +232,13 @@
     // ------------------- Game Loop -------------------
     function gameLoop(timestamp) {
       if (!lastTime) lastTime = timestamp;
-      const dt = (timestamp - lastTime) / 1000; // dt in seconds
+      const dt = (timestamp - lastTime) / 1000; // delta time in seconds
       lastTime = timestamp;
 
       if (!isPaused && !isGameOver) {
         // Update spawn timers
-        obstacleSpawnTimer += (dt * 1000);
-        appleSpawnTimer += (dt * 1000);
+        obstacleSpawnTimer += dt * 1000;
+        appleSpawnTimer += dt * 1000;
         if (obstacleSpawnTimer >= obstacleSpawnInterval) {
           createObstacle();
           obstacleSpawnTimer = 0;
@@ -231,7 +253,7 @@
         checkCollisions();
         updateUI();
       }
-      // Request the next frame if game is still active
+      // Request next frame if game is not over
       if (!isGameOver) {
         gameLoopId = requestAnimationFrame(gameLoop);
       }
@@ -243,10 +265,9 @@
       resetGame();
       gameOverText.style.display = 'none';
       startButton.style.display = 'none';
-      pauseButton.style.display = 'block';
-      restartButton.style.display = 'block';
-      faqButton.style.display = 'block';
-      // Start the game loop
+      pauseButton.style.display = 'inline-block';
+      restartButton.style.display = 'inline-block';
+      faqButton.style.display = 'inline-block';
       lastTime = null;
       gameLoopId = requestAnimationFrame(gameLoop);
     }
@@ -261,9 +282,9 @@
       speed = 300;
       obstacleSpawnTimer = 0;
       appleSpawnTimer = 0;
-      // Reset player position
+      // Reset player position (hitbox included)
       player.style.bottom = '0px';
-      // Clear any remaining obstacles and apples
+      // Clear obstacles and apples
       obstacles.forEach(el => obstaclesContainer.removeChild(el));
       apples.forEach(el => applesContainer.removeChild(el));
       obstacles = [];
@@ -274,7 +295,6 @@
     function togglePause() {
       isPaused = !isPaused;
       pauseButton.textContent = isPaused ? "Resume" : "Pause";
-      // If resuming, reset lastTime and continue the game loop.
       if (!isPaused && !isGameOver) {
         lastTime = null;
         gameLoopId = requestAnimationFrame(gameLoop);
@@ -282,11 +302,9 @@
     }
 
     function restartGame() {
-      // Cancel any ongoing animation frame
       cancelAnimationFrame(gameLoopId);
       resetGame();
       gameOverText.style.display = 'none';
-      // Restart the game loop
       lastTime = null;
       gameLoopId = requestAnimationFrame(gameLoop);
     }
@@ -298,13 +316,12 @@
       roundsText.textContent = `Rounds: ${rounds}`;
     }
 
-    // ------------------- Obstacle and Apple Creation and Updates -------------------
+    // ------------------- Obstacle and Apple Creation -------------------
     function createObstacle() {
       if (isGameOver || isPaused) return;
       const obstacle = document.createElement('div');
       obstacle.classList.add('obstacle');
       obstacle.textContent = '🪵';
-      // Start at the right edge of the game area
       const startPos = gameArea.offsetWidth;
       obstacle.dataset.posX = startPos;
       obstacle.style.left = startPos + 'px';
@@ -313,14 +330,12 @@
     }
 
     function updateObstacles(dt) {
-      // Move obstacles left
       for (let i = obstacles.length - 1; i >= 0; i--) {
         const obstacle = obstacles[i];
         let posX = parseFloat(obstacle.dataset.posX);
         posX -= speed * dt;
         obstacle.dataset.posX = posX;
         obstacle.style.left = posX + 'px';
-        // Remove if off-screen
         if (posX < -50) {
           obstaclesContainer.removeChild(obstacle);
           obstacles.splice(i, 1);
@@ -342,14 +357,12 @@
     }
 
     function updateApples(dt) {
-      // Move apples left
       for (let i = apples.length - 1; i >= 0; i--) {
         const apple = apples[i];
         let posX = parseFloat(apple.dataset.posX);
         posX -= speed * dt;
         apple.dataset.posX = posX;
         apple.style.left = posX + 'px';
-        // Remove if off-screen
         if (posX < -50) {
           applesContainer.removeChild(apple);
           apples.splice(i, 1);
@@ -359,8 +372,9 @@
 
     // ------------------- Collision Detection -------------------
     function checkCollisions() {
+      // Get the player's current bounding rectangle (including jump)
       const playerRect = player.getBoundingClientRect();
-      // Check obstacles for collision
+      // Check obstacles
       for (let i = 0; i < obstacles.length; i++) {
         const obsRect = obstacles[i].getBoundingClientRect();
         if (!(playerRect.right < obsRect.left ||
@@ -371,21 +385,19 @@
           return;
         }
       }
-      // Check apples for collision
+      // Check apples
       for (let i = apples.length - 1; i >= 0; i--) {
         const appleRect = apples[i].getBoundingClientRect();
         if (!(playerRect.right < appleRect.left ||
               playerRect.left > appleRect.right ||
               playerRect.bottom < appleRect.top ||
               playerRect.top > appleRect.bottom)) {
-          // Increase score on apple collision
           score++;
           applesContainer.removeChild(apples[i]);
           apples.splice(i, 1);
-          // Increase level every 10 points
           if (score % 10 === 0) {
             level++;
-            speed += 50; // Increase speed for added difficulty
+            speed += 50;
           }
         }
       }
@@ -399,7 +411,6 @@
       }
     }
 
-    // ------------------- Collision End -------------------
     function endGame() {
       isGameOver = true;
       gameOverText.style.display = 'block';
@@ -420,10 +431,10 @@
         if (progress < 1) {
           let newBottom;
           if (progress < 0.5) {
-            // Ascend phase
+            // Ascending
             newBottom = jumpHeight * (progress / 0.5);
           } else {
-            // Descend phase
+            // Descending
             newBottom = jumpHeight * (1 - ((progress - 0.5) / 0.5));
           }
           player.style.bottom = `${newBottom}px`;
@@ -438,12 +449,10 @@
 
     // ------------------- Input Handling -------------------
     function handleKeyPress(event) {
-      // If game over, allow restart with Enter or Space.
       if (isGameOver && (event.key === " " || event.key === "Enter")) {
         restartGame();
         return;
       }
-      // Only trigger jump if not paused or game over.
       if (!isGameOver && !isPaused && (event.key === " " || event.key === "w" || event.key === "Enter")) {
         jump();
       }
@@ -451,7 +460,7 @@
 
     // ------------------- FAQ -------------------
     function showFAQ() {
-      alert("FAQ:\n\nHow to play: Use Space, Enter, or W to jump over obstacles (🪵) and collect apples (🍎) to score points.\n\nAvoid obstacles to keep playing!");
+      alert("FAQ:\n\nHow to Play:\n- Press Space, Enter, or W to jump over obstacles (🪵).\n- Collect apples (🍎) to increase your score.\n- Avoid obstacles to keep playing.\n\nHosted on GitHub Pages and Google Sites compatible!");
     }
   </script>
 </body>
