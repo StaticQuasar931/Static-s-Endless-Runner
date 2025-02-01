@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Classic Obstacle Dodger</title>
+  <style>
+    /* General Styles */
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: #ff9800;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      flex-direction: column;
+    }
+    #game-container {
+      position: relative;
+      width: 100%;
+      max-width: 1400px;
+      height: 80%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #222;
+      border: 4px solid #fff;
+    }
+    #game-area {
+      width: 100%;
+      height: 90%;
+      position: relative;
+      background: linear-gradient(45deg, #009688, #4caf50);
+      display: flex;
+      align-items: flex-end;
+      padding-bottom: 10px;
+      box-sizing: border-box;
+    }
+    #player {
+      font-size: 50px;
+      position: absolute;
+      bottom: 0;
+      left: 10%;
+    }
+    #obstacles, #apples {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .obstacle, .apple {
+      position: absolute;
+      bottom: 0;
+      font-size: 40px;
+    }
+    .obstacle {
+      color: brown;
+    }
+    .apple {
+      color: red;
+    }
+    #score-text, #level-text, #rounds-text {
+      font-size: 24px;
+      color: white;
+      text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+      margin: 10px;
+      display: inline-block;
+    }
+    h1 {
+      font-size: 36px;
+      color: white;
+      font-weight: bold;
+      margin: 15px;
+    }
+    #game-over {
+      font-size: 24px;
+      color: red;
+      font-weight: bold;
+      display: none;
+      position: absolute;
+      top: 40%;
+      width: 100%;
+      text-align: center;
+    }
+    button {
+      font-size: 24px;
+      padding: 10px 15px;
+      background-color: #009688;
+      border: none;
+      color: white;
+      cursor: pointer;
+      margin: 10px;
+    }
+    button:hover {
+      background-color: #004d40;
+    }
+    #pause-button {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+    }
+    #made-by-static {
+      font-size: 14px;
+      color: white;
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+    }
+    #made-by-static a {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    #qr-code {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      width: 120px;
+    }
+    /* Mobile Styles */
+    @media (max-width: 768px) {
+      #player {
+        font-size: 40px;
+      }
+      #score-text, #level-text, #rounds-text {
+        font-size: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <h1>Classic Obstacle Dodger</h1>
+    <div>
+      <span id="score-text">Score: 0</span>
+      <span id="level-text">Level: 1</span>
+      <span id="rounds-text">Rounds: 0</span>
+    </div>
+    <div id="game-area">
+      <div id="player">🏃‍➡️</div>
+      <div id="obstacles"></div>
+      <div id="apples"></div>
+      <p id="game-over">Game Over! Press Enter or Space to Restart</p>
+    </div>
+    <div>
+      <button id="start-button">Start Game</button>
+      <button id="pause-button" style="display: none;">Pause</button>
+      <button id="restart-button" style="display: none;">Restart Game</button>
+      <button id="faq-button" style="display: none;">FAQ</button>
+    </div>
+    <p id="made-by-static">
+      <a href="https://sites.google.com/view/staticquasar931" target="_blank">Made By Static</a>
+    </p>
+    <img id="qr-code" src="https://res.cloudinary.com/dcsrqennd/image/upload/v1733694622/frame_1_vmv9y3.png" alt="QR Code" />
+  </div>
+
+  <script>
+    // DOM Elements
+    const gameArea = document.getElementById('game-area');
+    const obstaclesContainer = document.getElementById('obstacles');
+    const applesContainer = document.getElementById('apples');
+    const player = document.getElementById('player');
+    const scoreText = document.getElementById('score-text');
+    const levelText = document.getElementById('level-text');
+    const roundsText = document.getElementById('rounds-text');
+    const gameOverText = document.getElementById('game-over');
+    const startButton = document.getElementById('start-button');
+    const pauseButton = document.getElementById('pause-button');
+    const restartButton = document.getElementById('restart-button');
+    const faqButton = document.getElementById('faq-button');
+
+    // Game Variables
+    let score = 0;
+    let level = 1;
+    let rounds = 0;
+    let isGameOver = false;
+    let isPaused = false;
+    let isJumping = false;
+
+    // Timing & Spawn Variables (milliseconds)
+    let lastTime = null;
+    let obstacleSpawnTimer = 0;
+    let appleSpawnTimer = 0;
+    const obstacleSpawnInterval = 2000;
+    const appleSpawnInterval = 3000;
+
+    // Game speed and jump settings
+    let speed = 300; // pixels per second
+    const jumpHeight = 150; // maximum jump height in pixels
+
+    // Arrays to store obstacles and apples
+    let obstacles = [];
+    let apples = [];
+
+    // The game loop ID for requestAnimationFrame
+    let gameLoopId = null;
+
+    // Event Listeners
+    startButton.addEventListener('click', startGame);
+    pauseButton.addEventListener('click', togglePause);
+    restartButton.addEventListener('click', restartGame);
+    faqButton.addEventListener('click', showFAQ);
+    document.addEventListener('keydown', handleKeyPress);
+
+    // ------------------- Game Loop -------------------
+    function gameLoop(timestamp) {
+      if (!lastTime) lastTime = timestamp;
+      const dt = (timestamp - lastTime) / 1000; // dt in seconds
+      lastTime = timestamp;
+
+      if (!isPaused && !isGameOver) {
+        // Update spawn timers
+        obstacleSpawnTimer += (dt * 1000);
+        appleSpawnTimer += (dt * 1000);
+        if (obstacleSpawnTimer >= obstacleSpawnInterval) {
+          createObstacle();
+          obstacleSpawnTimer = 0;
+        }
+        if (appleSpawnTimer >= appleSpawnInterval) {
+          createApple();
+          appleSpawnTimer = 0;
+        }
+        // Update game objects
+        updateObstacles(dt);
+        updateApples(dt);
+        checkCollisions();
+        updateUI();
+      }
+      // Request the next frame if game is still active
+      if (!isGameOver) {
+        gameLoopId = requestAnimationFrame(gameLoop);
+      }
+    }
+
+    // ------------------- Start / Restart / Pause -------------------
+    function startGame() {
+      rounds++;
+      resetGame();
+      gameOverText.style.display = 'none';
+      startButton.style.display = 'none';
+      pauseButton.style.display = 'block';
+      restartButton.style.display = 'block';
+      faqButton.style.display = 'block';
+      // Start the game loop
+      lastTime = null;
+      gameLoopId = requestAnimationFrame(gameLoop);
+    }
+
+    function resetGame() {
+      // Reset game variables
+      score = 0;
+      level = 1;
+      isGameOver = false;
+      isPaused = false;
+      isJumping = false;
+      speed = 300;
+      obstacleSpawnTimer = 0;
+      appleSpawnTimer = 0;
+      // Reset player position
+      player.style.bottom = '0px';
+      // Clear any remaining obstacles and apples
+      obstacles.forEach(el => obstaclesContainer.removeChild(el));
+      apples.forEach(el => applesContainer.removeChild(el));
+      obstacles = [];
+      apples = [];
+      updateUI();
+    }
+
+    function togglePause() {
+      isPaused = !isPaused;
+      pauseButton.textContent = isPaused ? "Resume" : "Pause";
+      // If resuming, reset lastTime and continue the game loop.
+      if (!isPaused && !isGameOver) {
+        lastTime = null;
+        gameLoopId = requestAnimationFrame(gameLoop);
+      }
+    }
+
+    function restartGame() {
+      // Cancel any ongoing animation frame
+      cancelAnimationFrame(gameLoopId);
+      resetGame();
+      gameOverText.style.display = 'none';
+      // Restart the game loop
+      lastTime = null;
+      gameLoopId = requestAnimationFrame(gameLoop);
+    }
+
+    // ------------------- UI Updates -------------------
+    function updateUI() {
+      scoreText.textContent = `Score: ${score}`;
+      levelText.textContent = `Level: ${level}`;
+      roundsText.textContent = `Rounds: ${rounds}`;
+    }
+
+    // ------------------- Obstacle and Apple Creation and Updates -------------------
+    function createObstacle() {
+      if (isGameOver || isPaused) return;
+      const obstacle = document.createElement('div');
+      obstacle.classList.add('obstacle');
+      obstacle.textContent = '🪵';
+      // Start at the right edge of the game area
+      const startPos = gameArea.offsetWidth;
+      obstacle.dataset.posX = startPos;
+      obstacle.style.left = startPos + 'px';
+      obstaclesContainer.appendChild(obstacle);
+      obstacles.push(obstacle);
+    }
+
+    function updateObstacles(dt) {
+      // Move obstacles left
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const obstacle = obstacles[i];
+        let posX = parseFloat(obstacle.dataset.posX);
+        posX -= speed * dt;
+        obstacle.dataset.posX = posX;
+        obstacle.style.left = posX + 'px';
+        // Remove if off-screen
+        if (posX < -50) {
+          obstaclesContainer.removeChild(obstacle);
+          obstacles.splice(i, 1);
+          increaseScore();
+        }
+      }
+    }
+
+    function createApple() {
+      if (isGameOver || isPaused) return;
+      const apple = document.createElement('div');
+      apple.classList.add('apple');
+      apple.textContent = '🍎';
+      const startPos = gameArea.offsetWidth;
+      apple.dataset.posX = startPos;
+      apple.style.left = startPos + 'px';
+      applesContainer.appendChild(apple);
+      apples.push(apple);
+    }
+
+    function updateApples(dt) {
+      // Move apples left
+      for (let i = apples.length - 1; i >= 0; i--) {
+        const apple = apples[i];
+        let posX = parseFloat(apple.dataset.posX);
+        posX -= speed * dt;
+        apple.dataset.posX = posX;
+        apple.style.left = posX + 'px';
+        // Remove if off-screen
+        if (posX < -50) {
+          applesContainer.removeChild(apple);
+          apples.splice(i, 1);
+        }
+      }
+    }
+
+    // ------------------- Collision Detection -------------------
+    function checkCollisions() {
+      const playerRect = player.getBoundingClientRect();
+      // Check obstacles for collision
+      for (let i = 0; i < obstacles.length; i++) {
+        const obsRect = obstacles[i].getBoundingClientRect();
+        if (!(playerRect.right < obsRect.left ||
+              playerRect.left > obsRect.right ||
+              playerRect.bottom < obsRect.top ||
+              playerRect.top > obsRect.bottom)) {
+          endGame();
+          return;
+        }
+      }
+      // Check apples for collision
+      for (let i = apples.length - 1; i >= 0; i--) {
+        const appleRect = apples[i].getBoundingClientRect();
+        if (!(playerRect.right < appleRect.left ||
+              playerRect.left > appleRect.right ||
+              playerRect.bottom < appleRect.top ||
+              playerRect.top > appleRect.bottom)) {
+          // Increase score on apple collision
+          score++;
+          applesContainer.removeChild(apples[i]);
+          apples.splice(i, 1);
+          // Increase level every 10 points
+          if (score % 10 === 0) {
+            level++;
+            speed += 50; // Increase speed for added difficulty
+          }
+        }
+      }
+    }
+
+    function increaseScore() {
+      score++;
+      if (score % 10 === 0) {
+        level++;
+        speed += 50;
+      }
+    }
+
+    // ------------------- Collision End -------------------
+    function endGame() {
+      isGameOver = true;
+      gameOverText.style.display = 'block';
+      cancelAnimationFrame(gameLoopId);
+    }
+
+    // ------------------- Player Jumping -------------------
+    function jump() {
+      if (isJumping || isGameOver) return;
+      isJumping = true;
+      const totalDuration = 600; // total jump time in ms
+      let jumpStartTime = null;
+
+      function animateJump(timestamp) {
+        if (!jumpStartTime) jumpStartTime = timestamp;
+        const elapsed = timestamp - jumpStartTime;
+        const progress = elapsed / totalDuration;
+        if (progress < 1) {
+          let newBottom;
+          if (progress < 0.5) {
+            // Ascend phase
+            newBottom = jumpHeight * (progress / 0.5);
+          } else {
+            // Descend phase
+            newBottom = jumpHeight * (1 - ((progress - 0.5) / 0.5));
+          }
+          player.style.bottom = `${newBottom}px`;
+          requestAnimationFrame(animateJump);
+        } else {
+          player.style.bottom = '0px';
+          isJumping = false;
+        }
+      }
+      requestAnimationFrame(animateJump);
+    }
+
+    // ------------------- Input Handling -------------------
+    function handleKeyPress(event) {
+      // If game over, allow restart with Enter or Space.
+      if (isGameOver && (event.key === " " || event.key === "Enter")) {
+        restartGame();
+        return;
+      }
+      // Only trigger jump if not paused or game over.
+      if (!isGameOver && !isPaused && (event.key === " " || event.key === "w" || event.key === "Enter")) {
+        jump();
+      }
+    }
+
+    // ------------------- FAQ -------------------
+    function showFAQ() {
+      alert("FAQ:\n\nHow to play: Use Space, Enter, or W to jump over obstacles (🪵) and collect apples (🍎) to score points.\n\nAvoid obstacles to keep playing!");
+    }
+  </script>
+</body>
+</html>
