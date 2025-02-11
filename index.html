@@ -19,6 +19,7 @@
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: #000;
     }
+
     /* ================= Header UI (Always Visible at Top) ================= */
     #header {
       position: absolute;
@@ -74,6 +75,7 @@
       width: 150px;
       margin-bottom: 5px;
     }
+
     /* ================= Main Game Container ================= */
     #game-container {
       position: absolute;
@@ -84,19 +86,22 @@
       overflow: hidden;
       background: #000;
     }
+
     /* ================= Game Area: Sky, Clouds, Floor, & Objects ================= */
     #game-area {
       position: relative;
       width: 100%;
       height: 100%;
-      animation: skyChange 120s ease infinite;
+      /* Smooth skyChange in 120s cycle */
+      animation: skyCycle 120s linear infinite;
       z-index: 1;
     }
-    @keyframes skyChange {
+    @keyframes skyCycle {
       0%   { background: linear-gradient(to bottom, #87CEEB, #B0E0E6); }
       50%  { background: linear-gradient(to bottom, #ADD8E6, #87CEFA); }
       100% { background: linear-gradient(to bottom, #87CEEB, #B0E0E6); }
     }
+
     /* Clouds Container */
     #clouds {
       position: absolute;
@@ -106,10 +111,17 @@
       height: 100%;
       pointer-events: none;
       z-index: 0;
+      /* Move the entire clouds container slowly to the left */
+      animation: moveCloudsContainer 90s linear infinite;
     }
-    @keyframes moveClouds {
-      from { transform: translateX(0); }
-      to { transform: translateX(-50%); }
+    @keyframes moveCloudsContainer {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    /* Individual clouds also drift, providing variation */
+    @keyframes moveSingleCloud {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
     }
     .cloud {
       position: absolute;
@@ -117,6 +129,7 @@
       border-radius: 50%;
       filter: blur(1px);
     }
+
     /* ================= Floor (Classic Orange) ================= */
     #floor {
       position: absolute;
@@ -127,6 +140,7 @@
       background: #ff9800;
       z-index: 1;
     }
+
     /* ================= Game Objects Container (Obstacles Only) ================= */
     #obstacles {
       position: absolute;
@@ -135,6 +149,7 @@
       pointer-events: none;
       z-index: 2;
     }
+
     /* ================= Player & Obstacles ================= */
     #player {
       position: absolute;
@@ -151,6 +166,7 @@
       bottom: 50px;
       z-index: 2;
     }
+
     /* ================= Overlay Messages ================= */
     .overlay-message {
       position: absolute;
@@ -173,6 +189,7 @@
       display: none;
       border-radius: 8px;
     }
+
     /* ================= Start Overlay (Before Game Begins) ================= */
     #start-overlay {
       position: absolute;
@@ -201,6 +218,7 @@
     #start-overlay button:hover {
       background-color: #004d40;
     }
+
     /* ================= Bottom Controls (During Game) ================= */
     #bottom-controls {
       position: absolute;
@@ -219,10 +237,12 @@
       cursor: pointer;
       margin: 0 8px;
       transition: background-color 0.2s ease;
+      display: none; /* Hide initially; show once game starts */
     }
     #bottom-controls button:hover {
       background-color: #004d40;
     }
+
     /* ================= Responsive Adjustments ================= */
     @media (max-width: 768px) {
       #header { flex-direction: column; }
@@ -264,12 +284,13 @@
   <!-- ================= Main Game Container ================= -->
   <div id="game-container">
     <div id="game-area">
-      <!-- Clouds -->
+      <!-- Clouds Container -->
       <div id="clouds">
-        <div class="cloud" style="top: 10%; left: 5%; width: 200px; height: 120px; animation: moveClouds 65s linear infinite;"></div>
-        <div class="cloud" style="top: 20%; left: 35%; width: 150px; height: 90px; animation: moveClouds 60s linear infinite;"></div>
-        <div class="cloud" style="top: 15%; left: 65%; width: 180px; height: 100px; animation: moveClouds 63s linear infinite;"></div>
-        <div class="cloud" style="top: 30%; left: 85%; width: 120px; height: 70px; animation: moveClouds 58s linear infinite;"></div>
+        <!-- Individual Clouds (with slight random offsets in animation times for variability) -->
+        <div class="cloud" style="top: 10%; left: 5%; width: 200px; height: 120px; animation: moveSingleCloud 120s linear infinite;"></div>
+        <div class="cloud" style="top: 20%; left: 35%; width: 150px; height: 90px; animation: moveSingleCloud 130s linear infinite;"></div>
+        <div class="cloud" style="top: 15%; left: 65%; width: 180px; height: 100px; animation: moveSingleCloud 115s linear infinite;"></div>
+        <div class="cloud" style="top: 30%; left: 85%; width: 120px; height: 70px; animation: moveSingleCloud 140s linear infinite;"></div>
       </div>
       <!-- Floor -->
       <div id="floor"></div>
@@ -281,10 +302,10 @@
       <div id="game-over" class="overlay-message">Game Over! Press Enter, Space, or ↑ to Restart</div>
       <div id="pause-overlay" class="overlay-message">Paused</div>
     </div>
-    <!-- Bottom Controls (Visible During Game) -->
+    <!-- Bottom Controls (Initially hidden, shown once game starts) -->
     <div id="bottom-controls">
-      <button id="pause-button" style="display: none;">Pause</button>
-      <button id="restart-button" style="display: none;">Restart Game</button>
+      <button id="pause-button">Pause</button>
+      <button id="restart-button">Restart Game</button>
     </div>
   </div>
 
@@ -316,12 +337,13 @@
     let obstacleSpawnTimer = 0;
     const OBSTACLE_SPAWN_INTERVAL = 1500; // ms
     let speed = 300; // pixels per second
-    const jumpHeight = 200; // extra jump height (pixels)
-    const jumpDuration = 800; // ms total (400ms ascend, 400ms descend normally)
+    const jumpHeight = 200;   // jump height in px
+    const jumpDuration = 800; // total jump time in ms (400ms up, 400ms down by default)
     let obstacles = [];
     let gameLoopId = null;
-    let bestScore = localStorage.getItem('bestScore') || 0;
-    // For accelerated descent using "s" key
+    let bestScore = parseInt(localStorage.getItem('bestScore'), 10) || 0;
+
+    // For accelerated descent using "S" key
     let isSDown = false;
     const descentMultiplier = 2; // Descend 2x faster
 
@@ -330,14 +352,16 @@
     pauseButton.addEventListener('click', togglePause);
     restartButton.addEventListener('click', restartGame);
     faqButton.addEventListener('click', showFAQ);
+
     document.addEventListener('keydown', handleKeyPress);
     document.addEventListener('keyup', handleKeyUp);
+
     // Auto-pause/resume on tab visibility change
     document.addEventListener("visibilitychange", function() {
       if (document.hidden) {
         if (!isPaused && !isGameOver) togglePause();
       } else {
-        // Auto-resume if game is paused by visibility (optional)
+        // Auto-resume if desired
         if (isPaused && !isGameOver) togglePause();
       }
     });
@@ -347,6 +371,7 @@
       if (!lastTime) lastTime = timestamp;
       const dt = (timestamp - lastTime) / 1000;
       lastTime = timestamp;
+
       if (!isPaused && !isGameOver) {
         obstacleSpawnTimer += dt * 1000;
         if (obstacleSpawnTimer >= OBSTACLE_SPAWN_INTERVAL) {
@@ -357,6 +382,7 @@
         checkCollisions();
         updateUI();
       }
+
       if (!isGameOver) {
         gameLoopId = requestAnimationFrame(gameLoop);
       }
@@ -369,9 +395,13 @@
       gameOverText.style.display = 'none';
       pauseOverlay.style.display = 'none';
       startOverlay.style.display = 'none';
+
+      // Show pause and restart buttons now that the game is starting
       pauseButton.style.display = 'inline-block';
       restartButton.style.display = 'inline-block';
+
       lastTime = null;
+      // Resume cloud animations if they'd been paused
       clouds.style.animationPlayState = 'running';
       gameLoopId = requestAnimationFrame(gameLoop);
     }
@@ -385,7 +415,9 @@
       obstacleSpawnTimer = 0;
       player.style.bottom = '50px';
       obstacles.forEach(obs => {
-        if (obstaclesContainer.contains(obs)) obstaclesContainer.removeChild(obs);
+        if (obstaclesContainer.contains(obs)) {
+          obstaclesContainer.removeChild(obs);
+        }
       });
       obstacles = [];
       updateUI();
@@ -396,7 +428,9 @@
       pauseButton.textContent = isPaused ? 'Resume' : 'Pause';
       pauseOverlay.style.display = isPaused ? 'block' : 'none';
       clouds.style.animationPlayState = isPaused ? 'paused' : 'running';
+
       if (!isPaused && !isGameOver) {
+        // Reset lastTime so movement calculations remain correct
         lastTime = null;
         gameLoopId = requestAnimationFrame(gameLoop);
       }
@@ -414,6 +448,7 @@
     function updateUI() {
       scoreText.textContent = `Score: ${score}`;
       gamesPlayedText.textContent = `Games Played: ${rounds}`;
+
       if (score > bestScore) {
         bestScore = score;
         localStorage.setItem('bestScore', bestScore);
@@ -422,12 +457,13 @@
     }
 
     // ---------- Obstacle Functions ----------
-    // Obstacles: common logs (🪵) and rare cars (🚗) (1 in 21 chance).
+    // Obstacles: common logs (🪵) and rare cars (🚗) (1/21 chance)
     function createObstacle() {
       if (isGameOver || isPaused) return;
       const startPos = gameArea.offsetWidth;
       let obstacle = document.createElement('div');
       obstacle.classList.add('obstacle');
+
       if (Math.random() < 1/21) {
         obstacle.textContent = '🚗';
         obstacle.dataset.speedMultiplier = 1.5;
@@ -435,6 +471,7 @@
         obstacle.textContent = '🪵';
         obstacle.dataset.speedMultiplier = 1;
       }
+
       obstacle.dataset.posX = startPos;
       obstacle.style.left = startPos + 'px';
       obstaclesContainer.appendChild(obstacle);
@@ -446,9 +483,13 @@
         const obs = obstacles[i];
         let posX = parseFloat(obs.dataset.posX);
         const multiplier = parseFloat(obs.dataset.speedMultiplier) || 1;
+
+        // Move obstacle left based on speed & dt
         posX -= speed * dt * multiplier;
         obs.dataset.posX = posX;
         obs.style.left = posX + 'px';
+
+        // If obstacle passes off-screen, remove & increase score
         if (posX < -50) {
           obstaclesContainer.removeChild(obs);
           obstacles.splice(i, 1);
@@ -459,6 +500,7 @@
 
     function increaseScore() {
       score++;
+      // Increase speed every 10 obstacles
       if (score % 10 === 0) {
         speed += 50;
       }
@@ -467,19 +509,26 @@
     // ---------- Collision Detection ----------
     function checkCollisions() {
       const playerRect = player.getBoundingClientRect();
-      const safeMargin = isJumping ? 10 : 0;
+
+      // Slightly reduce bottom collision box if jumping
+      // (so we don't collide while “in the air” quite as strictly)
+      const safeMargin = isJumping ? 30 : 0;
       const adjustedPlayerRect = {
         left: playerRect.left,
         right: playerRect.right,
         top: playerRect.top,
         bottom: playerRect.bottom - safeMargin
       };
+
       for (let i = 0; i < obstacles.length; i++) {
         const obsRect = obstacles[i].getBoundingClientRect();
-        if (!(adjustedPlayerRect.right < obsRect.left ||
-              adjustedPlayerRect.left > obsRect.right ||
-              adjustedPlayerRect.bottom < obsRect.top ||
-              adjustedPlayerRect.top > obsRect.bottom)) {
+        // Standard AABB bounding-box check
+        if (
+          adjustedPlayerRect.right > obsRect.left &&
+          adjustedPlayerRect.left < obsRect.right &&
+          adjustedPlayerRect.bottom > obsRect.top &&
+          adjustedPlayerRect.top < obsRect.bottom
+        ) {
           endGame();
           return;
         }
@@ -492,59 +541,86 @@
       cancelAnimationFrame(gameLoopId);
     }
 
-    // ---------- Player Jumping (Pause-Aware & "S" Accelerated Descent) ----------
-    // Jump is split into ascend and descend phases.
+    // ---------- Player Jumping Logic (Pause-Aware & "S" for Accelerated Descent) ----------
+    // We'll track the jump's progress so that pausing mid-jump doesn't break it.
+    let jumpStartTime = null;      // Timestamp when jump starts
+    let jumpAscending = true;      // Are we in the ascend phase?
+    let jumpInProgress = false;    // Are we actively in an animation frame?
+
     function jump() {
       if (isJumping || isGameOver) return;
       isJumping = true;
-      let startTime = null;
-      let pausedDuration = 0;
-      let ascendTime = jumpDuration / 2;
-      let descendTime = jumpDuration / 2; // normal descent time
-      function animateJump(timestamp) {
-        if (isPaused) {
-          requestAnimationFrame(animateJump);
-          return;
-        }
-        if (!startTime) startTime = timestamp;
-        let elapsed = timestamp - startTime - pausedDuration;
-        if (elapsed < ascendTime) {
-          // Ascending phase
-          let progress = elapsed / ascendTime;
-          let offset = jumpHeight * progress;
+      jumpAscending = true;
+      jumpInProgress = true;
+      jumpStartTime = null;
+
+      requestAnimationFrame(animateJump);
+    }
+
+    function animateJump(timestamp) {
+      // If game is paused or over, just re-request the animation frame to “freeze” the jump visually
+      if (isPaused || isGameOver) {
+        requestAnimationFrame(animateJump);
+        return;
+      }
+
+      if (!jumpStartTime) jumpStartTime = timestamp;
+      const elapsed = timestamp - jumpStartTime;
+      const halfDuration = jumpDuration / 2;
+
+      if (jumpAscending) {
+        // Ascending phase
+        if (elapsed < halfDuration) {
+          let progress = elapsed / halfDuration;
+          let offset = jumpHeight * progress; // from 0 to jumpHeight
           player.style.bottom = (50 + offset) + 'px';
           requestAnimationFrame(animateJump);
         } else {
-          // Descending phase
-          let descentElapsed = elapsed - ascendTime;
-          // If "s" key is held, accelerate descent by a multiplier.
-          let effectiveDescendTime = isSDown ? descendTime / descentMultiplier : descendTime;
-          let progress = descentElapsed / effectiveDescendTime;
-          if (progress >= 1) {
-            player.style.bottom = '50px';
-            isJumping = false;
-          } else {
-            let offset = jumpHeight * (1 - progress);
-            player.style.bottom = (50 + offset) + 'px';
-            requestAnimationFrame(animateJump);
-          }
+          // Switch to descending
+          jumpAscending = false;
+          // Rebase the startTime for the descent
+          jumpStartTime = timestamp;
+          requestAnimationFrame(animateJump);
+        }
+      } else {
+        // Descending phase
+        const descentElapsed = elapsed;
+        // If "S" key is held, descend faster
+        let effectiveDescentTime = isSDown ? halfDuration / descentMultiplier : halfDuration;
+        if (descentElapsed < effectiveDescentTime) {
+          let progress = descentElapsed / effectiveDescentTime;
+          let offset = jumpHeight * (1 - progress); // from jumpHeight down to 0
+          player.style.bottom = (50 + offset) + 'px';
+          requestAnimationFrame(animateJump);
+        } else {
+          // End of jump
+          player.style.bottom = '50px';
+          isJumping = false;
+          jumpInProgress = false;
         }
       }
-      requestAnimationFrame(animateJump);
     }
 
     // ---------- Input Handling ----------
     function handleKeyPress(event) {
+      // Pause/Resume with Escape if game not over
       if (!isGameOver && event.key === "Escape") {
         togglePause();
         return;
       }
+      // If Game Over, press Space/Enter/ArrowUp to restart
       if (isGameOver && (event.key === " " || event.key === "Enter" || event.key === "ArrowUp")) {
         restartGame();
         return;
       }
+      // If not over and not paused, handle jump keys
       if (!isGameOver && !isPaused) {
-        if (event.key === " " || event.key.toLowerCase() === "w" || event.key === "Enter" || event.key === "ArrowUp") {
+        if (
+          event.key === " " ||
+          event.key.toLowerCase() === "w" ||
+          event.key === "Enter" ||
+          event.key === "ArrowUp"
+        ) {
           jump();
         }
         if (event.key.toLowerCase() === "s") {
@@ -552,6 +628,7 @@
         }
       }
     }
+
     function handleKeyUp(event) {
       if (event.key.toLowerCase() === "s") {
         isSDown = false;
@@ -567,7 +644,7 @@
         "- Dodge logs (🪵) and the rare faster cars (🚗).\n" +
         "- Press 'S' during the descent phase of a jump to descend faster.\n" +
         "- Press Esc to pause/resume the game.\n\n" +
-        "Enjoy the immersive experience on GitHub Pages and Google Sites!"
+        "Enjoy the immersive experience!"
       );
     }
   </script>
